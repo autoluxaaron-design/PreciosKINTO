@@ -413,26 +413,48 @@ export default function App() {
 
   const handleBulkData = async (text: string) => {
     setBulkLoading(true);
-    const lines = text.split('\n').filter(l => l.trim().length > 0);
-    if (lines.length < 2) { setBulkLoading(false); return; }
-    const rawHeaders = lines[0].toLowerCase().split(/[,\t]/).map(h => h.trim());
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length < 2) {
+      setBulkLoading(false);
+      return;
+    }
+
+    const headerLine = lines[0].toLowerCase();
+    const delimiter = headerLine.includes('\t')
+      ? /\t/
+      : headerLine.includes(',')
+        ? /,/ 
+        : headerLine.includes(';')
+          ? /;/
+          : /\s{2,}/;
+
+    const rawHeaders = headerLine.split(delimiter).map(h => h.trim());
     const dataRows = lines.slice(1);
     const newUnits: any[] = [];
+
     for (const row of dataRows) {
-      const cols = row.split(/[,\t]/).map(c => c.trim());
+      const cols = row.split(delimiter).map(c => c.trim());
       const unit: any = {};
+
       rawHeaders.forEach((h, i) => {
         const val = cols[i] || "";
         if (h.includes('patente') || h.includes('dominio')) unit.patente = val;
-        if (h.includes('modelo')) unit.modelo = val;
-        if (h.includes('año') || h.includes('year')) unit.anio = val;
-        if (h.includes('version') || h.includes('versión')) unit.version = val;
-        if (h.includes('km')) unit.km = val;
-        if (h.includes('precio') || h.includes('base')) unit.precioBase = val.replace(/[^0-9]/g, '');
+        else if (h.includes('modelo') || (h.includes('model') && !h.includes('year'))) unit.modelo = val;
+        else if (h.includes('año') || h.includes('year')) unit.anio = val;
+        else if (h.includes('version') || h.includes('versión') || h.includes('ver')) unit.version = val;
+        else if (h.includes('km')) unit.km = val;
+        else if (h.includes('precio') || h.includes('base')) unit.precioBase = val.replace(/[^0-9]/g, '');
       });
-      if (unit.patente && unit.modelo && unit.precioBase) newUnits.push(await analyzeSingle(unit));
+
+      if (unit.patente && unit.modelo && unit.precioBase) {
+        newUnits.push(await analyzeSingle(unit));
+      }
     }
-    setVehicles([...vehicles, ...newUnits]);
+
+    if (newUnits.length > 0) {
+      setVehicles([...vehicles, ...newUnits]);
+    }
+
     setBulkLoading(false);
     setShowBulk(false);
   };
