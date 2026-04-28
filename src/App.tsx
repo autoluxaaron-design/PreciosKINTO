@@ -496,9 +496,9 @@ export default function App() {
                  <TooltipHeader label="Versión" description="Versión o acabado del vehículo, se mantiene en el reporte para contexto." className="w-[110px] text-left" />
                  <TooltipHeader label="KM" description="Kilometraje cargado para mostrar el nivel de uso del vehículo." className="w-[60px] text-right" />
                  <TooltipHeader label="Precio Base" description="Precio Base ingresado para el vehículo, usado como valor inicial de comparación." className="w-[90px] text-right bg-blue-50/20 font-bold text-black border-r border-blue-100" />
-                 <TooltipHeader label="Tasa de referencia" description="Valor de mercado de tasa calculado según modelo y año, usado para comparar el precio base." className="w-[90px] text-[#00708d]" />
+                 <TooltipHeader label="Valor Tasa" description="Valor de mercado de tasa calculado según modelo y año, usado para comparar el precio base." className="w-[90px] text-[#00708d]" />
                  <TooltipHeader label="Valor Revista" description="Valor de referencia de revista calculado según modelo y año, usado como segunda referencia de mercado." className="w-[90px] text-[#00708d] border-r" />
-                 <TooltipHeader label="Desvío Tasa" description="Porcentaje de desviación entre el Precio Base y la Tasa de referencia." className="w-[55px]" />
+                 <TooltipHeader label="Desvío Tasa" description="Porcentaje de desviación entre el Precio Base y el valor de Tasa de referencia." className="w-[55px]" />
                  <TooltipHeader label="Desvío Revista" description="Porcentaje de desviación entre el Precio Base y el Valor de Revista." className="w-[55px] border-r" />
                  <TooltipHeader label="Referencia Mercado" description="Referencia de mercado calculada como promedio ponderado de tasa y revista." className="w-[95px] bg-[#00708d]/5 text-[#00708d] font-black" />
                  <TooltipHeader label="Evaluación" description="Índice final de evaluación que compara el Precio Base con la Referencia de Mercado." className="w-[70px] italic border-x bg-slate-50/50 font-black" />
