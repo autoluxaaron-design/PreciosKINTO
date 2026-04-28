@@ -348,7 +348,7 @@ export default function App() {
     });
   }, [vehicles]);
 
-  const analyzeSingle = async (data: any) => {
+  const analyzeSingle = async (data: any, cache: Record<string, any> = {}) => {
     const anioNum = parseInt(data.anio) || 2024;
     let modK = norm(data.modelo);
     if (modK === "SU4") modK = "SW4";
@@ -358,33 +358,40 @@ export default function App() {
     let tMi = 0;
     let tMa = 0;
 
-    try {
-      const marca = 'TOYOTA';
-      const [tasaResult, revistaResult] = await Promise.all([
-        TasaService.searchPrice(marca, modK, anioNum, data.version || ''),
-        RevistaService.searchPrice(marca, modK, anioNum, data.version || ''),
-      ]);
+    const cacheKey = `${modK}|${anioNum}|${(data.version || '').toUpperCase()}`;
+    if (cache[cacheKey]) {
+      ({ tV, tMi, tMa, rV } = cache[cacheKey]);
+    } else {
+      try {
+        const marca = 'TOYOTA';
+        const [tasaResult, revistaResult] = await Promise.all([
+          TasaService.searchPrice(marca, modK, anioNum, data.version || ''),
+          RevistaService.searchPrice(marca, modK, anioNum, data.version || ''),
+        ]);
 
-      if (tasaResult) {
-        tMi = Math.round(tasaResult.min);
-        tMa = Math.round(tasaResult.max);
-        tV = Math.round((tMi + tMa) / 2);
+        if (tasaResult) {
+          tMi = Math.round(tasaResult.min);
+          tMa = Math.round(tasaResult.max);
+          tV = Math.round((tMi + tMa) / 2);
+        }
+
+        if (revistaResult) {
+          rV = Math.round(revistaResult.precio);
+        }
+      } catch (error) {
+        console.warn('Error fetching market references:', error);
       }
 
-      if (revistaResult) {
-        rV = Math.round(revistaResult.precio);
+      if ((!tV || !rV) && MARKET_REF[modK] && MARKET_REF[modK][anioNum]) {
+        if (!tV) tV = MARKET_REF[modK][anioNum].h;
+        if (!rV) rV = MARKET_REF[modK][anioNum].j;
       }
-    } catch (error) {
-      console.warn('Error fetching market references:', error);
-    }
 
-    if ((!tV || !rV) && MARKET_REF[modK] && MARKET_REF[modK][anioNum]) {
-      if (!tV) tV = MARKET_REF[modK][anioNum].h;
-      if (!rV) rV = MARKET_REF[modK][anioNum].j;
-    }
+      if (!tV) tV = Math.round(parseInt(data.precioBase) * 0.9493);
+      if (!rV) rV = Math.round(parseInt(data.precioBase) * 0.8938);
 
-    if (!tV) tV = Math.round(parseInt(data.precioBase) * 0.9493);
-    if (!rV) rV = Math.round(parseInt(data.precioBase) * 0.8938);
+      cache[cacheKey] = { tV, tMi, tMa, rV };
+    }
 
     if (!tMi) tMi = Math.round(tV * 0.95);
     if (!tMa) tMa = Math.round(tV * 1.05);
@@ -430,9 +437,9 @@ export default function App() {
 
     const rawHeaders = headerLine.split(delimiter).map(h => h.trim());
     const dataRows = lines.slice(1);
-    const newUnits: any[] = [];
+    const cache: Record<string, any> = {};
 
-    for (const row of dataRows) {
+    const newUnits = await Promise.all(dataRows.map(async (row) => {
       const cols = row.split(delimiter).map(c => c.trim());
       const unit: any = {};
 
@@ -447,12 +454,14 @@ export default function App() {
       });
 
       if (unit.patente && unit.modelo && unit.precioBase) {
-        newUnits.push(await analyzeSingle(unit));
+        return analyzeSingle(unit, cache);
       }
-    }
+      return null;
+    }));
 
-    if (newUnits.length > 0) {
-      setVehicles([...vehicles, ...newUnits]);
+    const validUnits = newUnits.filter((unit): unit is any => unit !== null);
+    if (validUnits.length > 0) {
+      setVehicles([...vehicles, ...validUnits]);
     }
 
     setBulkLoading(false);
