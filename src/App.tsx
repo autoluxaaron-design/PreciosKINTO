@@ -106,7 +106,7 @@ const Dashboard = ({ vehicles, results }: { vehicles: any[], results: any[] }) =
   return (
     <div id="dashboard-content" className="w-full max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg">
       <div className="text-center mb-6">
-        <img src="/kinto.png" alt="Kinto" className="h-12 mx-auto mb-2" />
+        <img src={`${base}autolux.png`} alt="Autolux" className="h-12 mx-auto mb-2" />
         <h1 className="text-2xl font-black text-[#00708d]">INFORME EJECUTIVO DE COMPRA</h1>
         <p className="text-sm text-gray-600">Sistema de Análisis de Rentabilidad Kinto Lux</p>
       </div>
