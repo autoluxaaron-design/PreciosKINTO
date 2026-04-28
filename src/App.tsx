@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, LineElement, PointElement, RadarController, RadialLinearScale, ArcElement, PieController } from 'chart.js';
 import { Bar, Line, Radar, Pie, Doughnut } from 'react-chartjs-2';
+import { TasaService, RevistaService } from './lib/api';
 const base = './';
 
 const dataLabelPlugin = {
@@ -351,15 +352,43 @@ export default function App() {
     const anioNum = parseInt(data.anio) || 2024;
     let modK = norm(data.modelo);
     if (modK === "SU4") modK = "SW4";
-    let tV = 0, rV = 0, tMi = 0, tMa = 0;
-    if (MARKET_REF[modK] && MARKET_REF[modK][anioNum]) {
-      tV = MARKET_REF[modK][anioNum].h;
-      rV = MARKET_REF[modK][anioNum].j;
-    } else {
-      tV = parseInt(data.precioBase) * 0.9493;
-      rV = parseInt(data.precioBase) * 0.8938;
+
+    let tV = 0;
+    let rV = 0;
+    let tMi = 0;
+    let tMa = 0;
+
+    try {
+      const marca = 'TOYOTA';
+      const [tasaResult, revistaResult] = await Promise.all([
+        TasaService.searchPrice(marca, modK, anioNum, data.version || ''),
+        RevistaService.searchPrice(marca, modK, anioNum, data.version || ''),
+      ]);
+
+      if (tasaResult) {
+        tMi = Math.round(tasaResult.min);
+        tMa = Math.round(tasaResult.max);
+        tV = Math.round((tMi + tMa) / 2);
+      }
+
+      if (revistaResult) {
+        rV = Math.round(revistaResult.precio);
+      }
+    } catch (error) {
+      console.warn('Error fetching market references:', error);
     }
-    tMi = Math.round(tV * 0.95); tMa = Math.round(tV * 1.05);
+
+    if ((!tV || !rV) && MARKET_REF[modK] && MARKET_REF[modK][anioNum]) {
+      if (!tV) tV = MARKET_REF[modK][anioNum].h;
+      if (!rV) rV = MARKET_REF[modK][anioNum].j;
+    }
+
+    if (!tV) tV = Math.round(parseInt(data.precioBase) * 0.9493);
+    if (!rV) rV = Math.round(parseInt(data.precioBase) * 0.8938);
+
+    if (!tMi) tMi = Math.round(tV * 0.95);
+    if (!tMa) tMa = Math.round(tV * 1.05);
+
     return {
       id: data.id || Math.random().toString(36).substr(2, 9),
       patente: data.patente.toUpperCase(), modelo: modK,
